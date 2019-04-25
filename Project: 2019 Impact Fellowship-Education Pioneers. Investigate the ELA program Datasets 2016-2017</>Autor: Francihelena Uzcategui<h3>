@@ -1,0 +1,679 @@
+
+# coding: utf-8
+
+# <h1>Project: 2019 Impact Fellowship-Education Pioneers. Investigate the ELA program Datasets 2016-2017</h1>
+# <h3>Autor: Francihelena Uzcategui</h3>
+# 
+# 
+# ## Table of Contents
+# <ul>
+# <li><a href="#intro">Introduction</a></li>
+# <li><a href="#wrangling">Data Wrangling</a></li>
+# <li><a href="#cleaning">Data Cleaning</a></li>
+# <li><a href="#eda">Exploratory Data Analysis </a></li>
+# <li><a href="#conclusions">Conclusions</a></li>
+# <li><a href="#limitations">Limitations</a></li>
+# </ul>
+# 
+# 
+# <h3>Introduction </h3>
+# 
+#  <p>The Education Pioneers datasets have univariate and bivariate data to analyze — relations between Education and Demographic indexes, and how they affect the growth and development of students. </p>
+# 
+# <h5>Questions </h5>
+#     
+# <h6>1- How did the pilot school 5th graders’ ELA mean scores compare to the non-pilot 5th graders in 2017 (2016 - 2017 school year)?</h6> 
+#         <p>1.1- What was the average score of all the pilot schools combined?</p>
+#         <p>1.2- What was the average score of all the non-pilot schools combined?</p>.
+# <h6>2- Which pilot school exhibited the most growth in ELA mean scale scores?</h6>
+#         <p>2.1- Which pilot school exhibited the most growth in ELA mean scale scores from the 2016 test through the 2017 test</p>
+#         <p>2.2- What is the percentage difference in this school’s 5th grade growth from 2016 through 2017 compared to the other pilot schools’ 5th grade average growth during the same time period?</p>
+# <h6>3- What was the average percentage of students who received free/reduced lunch in the 5 pilot schools in 2017?</h6>
+# <h6>4- What was the average ELA mean test score of the non-pilot schools that have an equal or greater percentage of students who qualify for free/reduced lunch as the pilot schools? Only look at the 5th grade class in the 2017 school year.</h6> 
+
+# <h3> I Dataset </h3>
+
+# In[1]:
+
+
+import pandas as pd
+import numpy as np
+from pandas import Series, DataFrame, Panel
+import matplotlib.pyplot as plt
+
+
+# <h6>Data Wrangling</h6>
+
+# In[2]:
+
+
+df = pd.read_csv('C:/Users/Franchi/Desktop/data exercise1.csv')
+df.head()
+
+
+# <h6>Data Cleaning</h6>
+
+# From the original csv file, we deleted the first row along all the columns to avoid issues at the moment of importing; it was 'unnamed.'
+
+# In[3]:
+
+
+df.info()
+
+
+# In[4]:
+
+
+df.dtypes
+
+
+# Changing Overall_ELA_Mean_Scale_Score str to int. After too many fail attemps the solution includes two steps. 
+# First to fill the empty rows with 0 (ValueError: invalid literal for int() with base 10 ''). 
+# Second directly we transformed str to int.
+# Source:https://www.ritchieng.com/pandas-changing-datatype/, https://stackoverflow.com/questions/25586085/replace-whitespace-with-a-0-in-pandas-python-3, https://stackoverflow.com/questions/10591000/specifying-data-type-in-pandas-csv-reader?fbclid=IwAR2qm41ZUc8su98ftOUtS-aDYpaUxdBhAVk616p6T3xajgUh9UhovBA01c4
+
+# Changing data type by .to_numeric() 
+# "Pandas operations like to_numeric don't operate "in-place" by default. I recommend that you assign the result to a column in your dataframe.
+# df['Period_numbers'] = pd.to_numeric(df['Period'], errors='coerce') Same goes with dropna.
+# In most cases you can pass inplace=True to the method or function. But I really do recommend assigning the results instead"
+# 
+# Source:https://stackoverflow.com/questions/40493726/pd-to-numeric-is-not-working-in-python
+
+# In[5]:
+
+
+df['Overall_ELA_Mean_Scale_Score_numbers'] = pd.to_numeric(df['Overall_ELA_Mean_Scale_Score'], errors='coerce')
+
+
+# In[6]:
+
+
+df.info()
+
+
+# We are dealing with unnamed columns. Source: https://stackoverflow.com/questions/43983622/remove-unnamed-columns-in-pandas-dataframe
+
+# In[7]:
+
+
+data=df.dropna(how='all', axis='columns')
+data.head()
+
+
+# We select only the columns to use for the analysis
+
+# In[8]:
+
+
+data=data.filter(["School_ID", "Year", "Test Name", "# Students Tested", "Overall_ELA_Mean_Scale_Score_numbers", "Reading Mean Scale Score", "Writing Mean Scale Score"])
+data.head()
+
+
+# <h6>Exploratory Data Analysis</h6>
+
+# <strong>1- How did the pilot school 5th graders’ ELA mean scores compare to the non-pilot 5th graders in 2017 (2016 - 2017 school year)?</strong>
+#     
+#    <strong> 1.1- What was the average score of all the pilot schools combined?</strong>
+
+# In[9]:
+
+
+pilot_schools_selection=data[data.School_ID.isin([609880,610534, 610066,610082,610182])]
+pilot_schools_selection.head()
+
+
+# We select specific rows from a column. Source: DatabyDavid=https://stackoverflow.com/questions/17071871/select-rows-from-a-dataframe-based-on-values-in-a-column-in-pandas
+
+# In[10]:
+
+
+pilot_grade_5th = pilot_schools_selection['Test Name'] == 'ELA/Literacy Grade 5'
+pilot_schools_5th=pilot_schools_selection[pilot_grade_5th]
+
+
+# In[11]:
+
+
+pilot_schools_5th
+
+
+# In[12]:
+
+
+pilot_schools_5th.duplicated()
+
+
+# In[13]:
+
+
+pilot_schools_selection.duplicated().sum()
+
+
+# We tried to drop the duplicate values from 'Overall_ELA_Mean_Scale_Score,' but it doesn't work because it takes the School ID column too. Thus, we dropped by index the two values identified, according to the above data frame.
+# Source: https://chrisalbon.com/python/data_wrangling/pandas_dropping_column_and_rows/
+# 
+# 1st Fail attempt==> pilot_schools_5th.drop_duplicates("Overall_ELA_Mean_Scale_Score", keep='first', inplace=False)
+# 2nd Fail attempt==> pilot_schools_5th.drop_duplicates(subset=['Overall_ELA_Mean_Scale_Score']).shape / R= 9,7 ==> It considered three duplicated values instead of two values or "True"
+
+# In[14]:
+
+
+#Deleting duplicate rows at index position 5 & 6
+pilot_schools_5th_non_duplicates=pilot_schools_5th.drop(pilot_schools_5th.index[[5,6]])
+pilot_schools_5th_non_duplicates
+
+
+# "The mean of means is simply the mean of all of the means of several samples. By calculating the mean of the sample means, you have a single value that can help summarize a lot of data.
+# The mean of means, notated here as μx¯¯¯, is actually a pretty straightforward calculation. Simply sum the means of all your samples and divide by the number of means."
+# Source:https://www.ck12.org/book/CK-12-Probability-and-Statistics-Concepts/section/9.6/
+
+# In[15]:
+
+
+total_mean_pilot_schools_5thgrade=pilot_schools_5th_non_duplicates['Overall_ELA_Mean_Scale_Score_numbers'].mean()
+print(total_mean_pilot_schools_5thgrade)
+
+
+#   <strong>1.2- What was the average score of all the non-pilot schools combined?</strong>
+
+# In[16]:
+
+
+#Source: https://stackoverflow.com/questions/17097643/search-for-does-not-contain-on-a-dataframe-in-pandas
+nonpilot_schools_selection=data[data["School_ID"].apply(lambda x:x not in [609880,610534, 610066,610082,610182])] 
+nonpilot_schools_selection.head()
+
+
+# In[17]:
+
+
+nonpilot_schools_selection.info()
+
+
+# In[18]:
+
+
+nonpilot_grade_5th= nonpilot_schools_selection['Test Name'] == 'ELA/Literacy Grade 5'
+nonpilot_schools_5th=nonpilot_schools_selection[nonpilot_grade_5th]
+
+
+# In[19]:
+
+
+nonpilot_schools_5th.head()
+
+
+# In[20]:
+
+
+nonpilot_schools_5th.info()
+
+
+# In[21]:
+
+
+nonpilot_schools_5th.duplicated().sum()
+
+
+# After checked duplicates values of the whole dataframe, we can proceed to calculate nonpilot schools mean
+
+# In[22]:
+
+
+type(nonpilot_schools_5th)
+
+
+# In[23]:
+
+
+total_mean_nonpilot_schools_5thgrade=nonpilot_schools_5th['Overall_ELA_Mean_Scale_Score_numbers'].mean()
+print(total_mean_nonpilot_schools_5thgrade)
+
+
+# <strong>2- Which pilot school exhibited the most growth in ELA mean scale scores?</strong>
+# 
+# <strong>2.1- Which pilot school exhibited the most growth in ELA mean scale scores from the 2016 test through the 2017 test</strong>
+
+# In[24]:
+
+
+grow_ELAscore_pilot_shools_2016_2017=pilot_schools_5th_non_duplicates.groupby('School_ID').Overall_ELA_Mean_Scale_Score_numbers.mean().reset_index()
+print(grow_ELAscore_pilot_shools_2016_2017)
+
+
+# In[25]:
+
+
+School_ID_grow_ELAscore_pilot_shools_2016_2017=grow_ELAscore_pilot_shools_2016_2017.School_ID
+School_ID_grow_ELAscore_pilot_shools_2016_2017
+
+
+# In[26]:
+
+
+Grow_ELA_mean_score_pilot_shools_2016_2017=grow_ELAscore_pilot_shools_2016_2017.Overall_ELA_Mean_Scale_Score_numbers
+Grow_ELA_mean_score_pilot_shools_2016_2017
+
+
+# In[27]:
+
+
+plt.figure(figsize=(6,4))
+ax=plt.subplot()
+plt.bar(range(len(Grow_ELA_mean_score_pilot_shools_2016_2017)),Grow_ELA_mean_score_pilot_shools_2016_2017)
+ax.set_xticks([0,1,2,3,4])
+ax.set_xticklabels(School_ID_grow_ELAscore_pilot_shools_2016_2017)
+plt.xticks(rotation=45)
+plt.subplots_adjust(bottom=0.10)
+plt.title("Pilot Schools growth in ELA mean scale scores 2016-2017")
+plt.xlabel('School ID') 
+plt.ylabel('Overall_ELA_Mean_Scale_Score')
+plt.savefig('Pilot Schools growth in ELA mean scale scores.png')
+plt.show()
+
+
+# <strong>2.1- What is the percentage difference in this school’s 5th grade growth from 2016 through 2017 compared to the other pilot schools’ 5th grade average growth during the same time period?</strong>
+
+# In[28]:
+
+
+#Source; https://stackoverflow.com/questions/34682828/extracting-specific-selected-columns-to-new-dataframe-as-a-copy
+new = pilot_schools_5th_non_duplicates[['School_ID','Year','Overall_ELA_Mean_Scale_Score_numbers']].copy()
+new
+
+
+# We want to know the performance of each pilot school by year (2016 and 2017). We are using Group by and Split. Source: https://www.youtube.com/watch?v=Wb2Tp35dZ-I
+
+# In[29]:
+
+
+Year_pilot_schools=pilot_schools_5th_non_duplicates.groupby('Year')
+Year_pilot_schools
+
+
+# In[30]:
+
+
+for Year, Overall_ELA_Mean_Scale_Score_numbers in Year_pilot_schools:
+    print(Year)
+    print(Overall_ELA_Mean_Scale_Score_numbers)
+
+
+# In[31]:
+
+
+First_values=Year_pilot_schools.get_group(2016)
+First_values
+
+
+# In[32]:
+
+
+Second_values=Year_pilot_schools.get_group(2017)
+Second_values
+
+
+# Now the schools are splits by year we can subtract each column "Overall_ELA_Mean_Scale_Score" by year. After multiple attempts, we prefer this solution by collections and dictionaries. Source: https://pythontic.com/containers/counter/subtract, https://docs.python.org/3/library/collections.html
+
+# The difference between each pilot school:
+
+# In[33]:
+
+
+import collections
+
+
+# In[34]:
+
+
+# create two boxes
+
+year2016 = collections.Counter({"609880":791,"610066":772,"610082":768,"610182":764, "610534":793})
+
+year2017 = collections.Counter({"609880":792,"610066":786,"610082":774,"610182":768, "610534":795}) 
+
+# subtract year2017 from year2016
+
+ret = year2016.subtract(year2017)
+
+#print year2016 contents
+
+print(year2016)
+
+
+# By hand, we create a variable with the previous dictionary values but omitting the negative sings
+
+# In[35]:
+
+
+dict_sub_years=({'609880':[1], '610534': [2], '610182': [4], '610082': [6], '610066': [14]})
+
+
+# Converting dictionary to dataframe
+
+# In[36]:
+
+
+frame_sub_years=pd.DataFrame.from_dict(dict_sub_years)
+frame_sub_years
+
+
+# Average of each pilot school:
+#     
+#  <p>a)Sum</p>
+
+# In[37]:
+
+
+year_2016 = {"609880":791,"610066":772,"610082":768,"610182":764, "610534":793}
+
+year_2017 = {"609880":792,"610066":786,"610082":774,"610182":768, "610534":795}
+
+
+# In[38]:
+
+
+#Source:https://stackoverflow.com/questions/10461531/merge-and-sum-of-two-dictionaries
+print({ k: year_2016.get(k, 0) + year_2017.get(k, 0) for k in set(year_2016) })
+
+
+# By hand, we create a variable with the previous dictionary values
+
+# In[39]:
+
+
+dict_sum_years={'610534':[1588], '609880': [1583], '610182': [1532], '610066': [1558], '610082': [1542]}
+
+
+# Converting dictionary to dataframe
+
+# In[40]:
+
+
+frame_sum_years=pd.DataFrame.from_dict(dict_sum_years)
+frame_sum_years
+
+
+# <p>b)Average</p>
+
+# In[41]:
+
+
+frame_avg_sum_years=frame_sum_years.iloc[:, :]/2
+frame_avg_sum_years
+
+
+# To get the percentage of the difference, we must divide frame_sub_years/frame_avg_sum_years*100
+
+# In[42]:
+
+
+percentage_difference_pilot_schools=(frame_sub_years/frame_avg_sum_years)*100
+percentage_difference_pilot_schools
+
+
+# <h2> II Dataset : for 3rd and 4th questions <h2>
+
+# <h6>Data Wrangling </h6>
+
+# In[43]:
+
+
+df2 = pd.read_csv('C:/Users/Franchi/Desktop/data exercise2.csv')
+df2.head()
+
+
+# <h6>Data Cleaning</h6>
+
+# <ol>Changes in the cvs file: 
+# <li>The first row was deleted and modified because of when imported it the title of columns were 'unnamed.'</li>
+# <li>School_Year and School_ID column names are changed because we added underscore sing.</li>
+# <li>The datatype of Free_ReducedLunch% changed to general and without the percentage sign.</li>
+# <li>The datatype of Total and Free_Reduced_Lunch_N, changed from General type to Number type and decrease decimal, avoiding the comma sign (Ex. 1,812)</li>
+
+# In[44]:
+
+
+df2.info()
+
+
+# Due to our column object is Free/Reduced lunch we don't care about the null values from Bilingual column.
+
+# Changing data types by pandas.to_numeric method. Source:https://www.geeksforgeeks.org/python-pandas-to_numeric-method/
+
+# In[45]:
+
+
+df2.dtypes
+
+
+# The "School_Year" and "School_ID" name columns changed from the original csv
+
+# We select specific columns to use for the analysis
+
+# In[46]:
+
+
+data2=df2.filter(["School_Year","School_ID", "Total", "Free_Reduced_Lunch_N", "Free_Reduced_Lunch_%"])
+data2.head()
+
+
+# <h6>Exploratory Data Analysis</h6>
+
+# <strong>3- What was the average percentage of students who received free/reduced lunch in the 5 pilot schools in 2017?</strong>
+
+# In[47]:
+
+
+free_lunch_pilot_schools_selection=data2[data2.School_ID.isin([609880,610534, 610066,610082,610182])]
+free_lunch_pilot_schools_selection
+
+
+# In[48]:
+
+
+free_lunch_pilot_grade_2017 = free_lunch_pilot_schools_selection['School_Year'] == '2017'
+free_lunch_pilot_schools_2017=free_lunch_pilot_schools_selection[free_lunch_pilot_grade_2017]
+
+
+# In[49]:
+
+
+free_lunch_pilot_schools_2017
+
+
+# In[50]:
+
+
+sum_total_pilot_schools_2017=free_lunch_pilot_schools_2017['Total'].sum()
+print(sum_total_pilot_schools_2017)
+
+
+# In[51]:
+
+
+sum_free_lunch_pilot_schools_2017=free_lunch_pilot_schools_2017['Free_Reduced_Lunch_N'].sum()
+print(sum_free_lunch_pilot_schools_2017)
+
+
+# In[52]:
+
+
+avg_pecentage_select_pilot_schools=sum_free_lunch_pilot_schools_2017*100/sum_total_pilot_schools_2017
+avg_pecentage_select_pilot_schools
+
+
+# That's mean 22% average percentage of students who received free/reduced lunch in the five pilot schools in 2017
+
+# <strong> 4- What was the average ELA mean test score of the non-pilot schools that have an equal or greater percentage of students who qualify for free/reduced lunch as the pilot schools? Only look at the 5th grade class in the 2017 school year.</strong>
+
+# Verifying the primary key datatype
+
+# In[53]:
+
+
+print (df['School_ID'].dtypes)
+print (df2['School_ID'].dtypes)
+
+
+# Merging the two datasets into one
+
+# In[54]:
+
+
+merged = pd.merge(df, df2, how="left", on="School_ID")
+merged
+
+
+# In[55]:
+
+
+merged.dtypes
+
+
+# We select only some columns to use for the analysis.
+
+# In[56]:
+
+
+data_combination=merged.filter(["School_ID","School_Year","Test Name","Overall_ELA_Mean_Scale_Score_numbers","Total", "Free_Reduced_Lunch_N", "Free_Reduced_Lunch_%"])
+data_combination.head()
+
+
+# In[57]:
+
+
+data_combination.dtypes
+
+
+# To avoid NaN in Overall_ELA_Mean_Scale_Score_num column, we change to Int and fill with zeros.
+
+# In[58]:
+
+
+data_combination['Overall_ELA_Mean_Scale_Score_numbers'] = data_combination['Overall_ELA_Mean_Scale_Score_numbers'].fillna(0).astype(int)
+data_combination.head()
+
+
+# In[59]:
+
+
+data_combination.dtypes
+
+
+# Now select the criteria wanted: first- non-pilot school Id, second - ELA/Literacy Grade 5, third- Year 2017, and fourth- Free_Reduced_Lunch_% >= 0.22
+
+# In[60]:
+
+
+nonpilot_schools_selc1=data_combination[data_combination["School_ID"].apply(lambda x:x not in [609880,610534, 610066,610082,610182])] 
+nonpilot_schools_selc1.head()
+
+
+# In[61]:
+
+
+fifthgrade_nonpilot_schools_selc= nonpilot_schools_selc1['Test Name'] == 'ELA/Literacy Grade 5'
+nonpilot_schools_selc2=nonpilot_schools_selc1[fifthgrade_nonpilot_schools_selc]
+
+
+# In[62]:
+
+
+nonpilot_schools_selc2.head()
+
+
+# In[63]:
+
+
+year2107_fifthgrade_nonpilot_schools_selc= nonpilot_schools_selc2['School_Year'] == '2017'
+nonpilot_schools_selc3=nonpilot_schools_selc2[year2107_fifthgrade_nonpilot_schools_selc]
+
+
+# In[64]:
+
+
+nonpilot_schools_selc3.head()
+
+
+# According to the previous question, only 22% average percentage of students received free/reduced lunch in the five pilot schools in 2017
+
+# In[65]:
+
+
+nonpilot_schools_selc3[nonpilot_schools_selc3['Free_Reduced_Lunch_%'] >= 0.22]
+
+
+# In[66]:
+
+
+sum_total_nonpilot_schools_2017=nonpilot_schools_selc3['Total'].sum()
+print(sum_total_nonpilot_schools_2017)
+
+
+# In[67]:
+
+
+sum_free_lunch_nonpilot_schools_2017=nonpilot_schools_selc3['Free_Reduced_Lunch_N'].sum()
+print(sum_free_lunch_nonpilot_schools_2017)
+
+
+# In[68]:
+
+
+avg_pecentage_select_nonpilot_schools=sum_free_lunch_nonpilot_schools_2017*100/sum_total_nonpilot_schools_2017
+avg_pecentage_select_nonpilot_schools
+
+
+# That's mean 79.72 % average percentage of students receive free/reduced lunch in the non-pilot schools in 2017
+
+# <h6>Conclusions</h6>
+
+# <h6>1- How did the pilot school 5th graders’ ELA mean scores compare to the non-pilot 5th graders in 2017 (2016 - 2017 school year)?</h6>
+# 
+# <h5>1.1- What was the average score of all the pilot schools combined?</h5>
+# <p>= 780.3 was the average score of the five pilot schools combined</p>
+# 
+# <h5>1.2- What was the average score of all the non-pilot schools combined?</h5>
+# <p>= 725.2 was the average score of all the non-pilot schools combined</p>
+#     
+# <h6>2- Which pilot school exhibited the most growth in ELA mean scale scores?</h6>
+#         
+# <h5>2.1- Which pilot school exhibited the most growth in ELA mean scale scores from the 2016 test through the 2017 test</h5>
+# <p>= The school ID 610534 had the best performance ELA mean scale score 794.0</p>
+# 
+# | Pilot_school_ID | ELA mean scale scores |
+# |-----------------|:---------------------:|
+# |      610534     |       794.0           |
+# |      609880     |       791.5           |
+# |      610066     |       779.0           |
+# |      610082     |       771.0           |
+# |      610182     |       766.0           |      
+# ![](Pilot Schools growth in ELA mean scale scores.png)
+# 
+# 
+# <h5>2.2- What is the percentage difference in this school’s 5th grade growth from 2016 through 2017 compared to the other pilot schools’ 5th grade average growth during the same time period?</h5>
+# <p>= The school ID 610534 has a percentage difference of 0.251. Concerning the other pilot schools, it didn't have a relevant change.</p>
+# 
+# | Pilot_school_ID | Percentage difference 2016 & 2017 |
+# |-----------------|:---------------------------------:|
+# |      610534     |  0.251889                         |
+# |      609880     |  0.126342                         |
+# |      610066     |  1.797176                         |
+# |      610082     |  0.77821                          |
+# |      610182     |  0.522193                         |
+# 
+# 	        
+# 
+# <h6>3- What was the average percentage of students who received free/reduced lunch in the five pilot schools in 2017?</h6>
+# <p> In 2017, only 22% average percentage of students of pilot schools received free/reduced lunch</p>
+# 
+# <h6>4- What was the average ELA mean test score of the non-pilot schools that have an equal or greater percentage of students who qualify for free/reduced lunch as the pilot schools? Only look at the 5th-grade class in the 2017 school year.</h6> 
+# <p> In 2017, 79.72 % average percentage of students of non pilot schools received free/reduced lunch</p>
+# 
+
+# <h6>Limitations</h6>
+
+# <p>Missing values-numerical values: Overall_ELA_Mean_Scale_Score column has several zeros values to handle. First, we replaced the zeros to NaN, later calculated the mean and reassigned this value to NaN, then we created new columns and dropped the initial columns with several zeros.</p>
+# 
+# <p>Object type: We verified the object type to select the method to use; otherwise we got confused.<p>
